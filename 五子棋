@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>五子棋</title>
+	<style>
+		*{margin:0;padding:0;}
+		input,button,select,textarea{outline:none;}
+		.weiqi {
+			width: 600px;
+			margin: 0 auto;
+			text-align: center;
+		}
+		input[type='button'] {
+			width: 160px;
+			height: 50px;
+			border-radius: 4px;
+			border:none;
+			font-size: 24px;
+			background-color: #ccc;
+		}
+	</style>
+</head>
+<body>
+	<div id="gobang" class="weiqi">
+		<canvas id="can" width="640px" height="640px" style="background-image: url(img/back.jpg);" ></canvas>
+		<!-- <div id="you_win" class="win"></div> -->
+		<form action="post">
+			<p>先执棋者：
+        <input id="fblack" type="radio" name="first" value="0" checked="true">黑
+        <input id="fwhite" type="radio" name="first" value="1">白
+      </p>
+			<input type="button" value="重新开始" id="reset" onclick="restart();">
+		</form>
+	</div>
+
+	<script>
+		var gobang = document.getElementById('gobang');
+		var maps = new Array(16);
+		function init(){
+			for(var i=0;i<=15;i++){
+				maps[i] = new Array(16);
+				for(var j=0;j<=15;j++){
+					maps[i][j] = 0;
+				}
+			}			
+		}
+		init();// 初始化maps
+		var can = document.getElementById('can');
+		var ctx = can.getContext('2d');
+		// 画背景格子
+		function setBackground(){
+			ctx.strokeStyle = 'gray';
+			for(var i=0;i<15;i++){
+				for(var j=0;j<15;j++){
+					ctx.strokeRect(20+j*40,20+i*40,40,40);
+				}
+			}			
+		}
+		setBackground();
+		// 设置黑白棋子
+		var black = new Image();
+		var white = new Image();
+		black.src = 'img/black.png';
+		white.src = 'img/white.png';		
+		// 检查游戏是否开始
+		function checkStart(){
+			var start = false;
+			for(var i=0;i<=15;i++){
+				for(var j=0;j<=15;j++){
+					if(maps[i][j] == 1){
+						start = true;
+						alert("游戏已经开始，要改先手请重新开始游戏！");
+						break;
+					}
+				}
+				if(start){
+					break;
+				}
+			}
+			return start;
+		}
+		// 设置标志flag 控制下了一个棋色下一个下另一个棋色
+		var flag = 0;
+		var first = document.getElementsByName('first');
+		var fblack = document.getElementById('fblack');
+		var fwhite = document.getElementById('fwhite');
+		var check = 0;//记录开始前的先手
+		if(fblack.checked){
+			check = 0;
+		}else{
+			check = 1;
+		}
+		for(var i=0;i<first.length;i++){
+			first[i].onclick = function(){
+				if(checkStart()){
+					if(this==fwhite && check==0){
+						this.checked = false;
+						fblack.checked = true;
+					}else if(this==fblack && check==1){
+						this.checked = false;
+						fwhite.checked = true;
+					}
+				}else{
+					flag = this.value;
+					check = this.value;
+				}
+			}
+		}
+		// 下棋
+		can.onclick = function play(e){
+			var x = e.clientX - can.offsetLeft-20;
+			var y = e.clientY - can.offsetTop-20;
+			var col = parseInt((x+20)/40);
+			var row = parseInt((y+20)/40);
+			if(col<16 && row<16){
+				if(maps[col][row]==0){
+					if(flag==0){
+						ctx.drawImage(black,col*40,row*40);
+						maps[col][row] = 2;
+						isWin(2,row,col);
+						flag++;
+					}else{
+						ctx.drawImage(white,col*40,row*40);
+						maps[col][row] = 1;
+						isWin(1,row,col);
+						flag--;			
+					}
+				}
+			}				
+		}
+		// 准备下棋
+		/*can.onmousemove = function ready(e){
+			var x = e.clientX - can.offsetLeft-20;
+			var y = e.clientY - can.offsetTop-20;
+			var col = parseInt((x+20)/40);
+			var row = parseInt((y+20)/40);
+			if(col<16 && row<16){
+				if(maps[col][row]==0){
+					if(flag==0){
+						ctx.drawImage(black,col*40,row*40);
+						flag++;
+					}else{
+						ctx.drawImage(white,col*40,row*40);
+						flag--;			
+					}
+				}
+			}
+		}*/
+		// 重新开始
+		function restart(){
+			// 清除画布
+			can.height = can.height;
+			// 重画背景格子
+			setBackground();
+			// 初始化maps
+			init();
+			// 初始化flag
+			for(var i=0;i<first.length;i++){
+				if(first[i].checked){
+					flag = first[i].value;
+					break;
+				}
+			}
+		}
+		function isWin(state,row,col){
+			var oldrow = row;
+			var oldcol = col;
+			//横向
+			var countx = 1,county = 1,countxy = 1,countyx = 1;
+			while((oldcol-1)>=0 && maps[oldcol-1][oldrow]==state){
+				countx++;
+				oldcol--;
+			}
+			oldrow = row;
+			oldcol = col;
+			while((oldcol+1)<=15 && maps[oldcol+1][oldrow]==state){
+				countx++;
+				oldcol++;
+			}
+			// 竖向
+			oldrow = row;
+			oldcol = col;
+			while((oldrow-1)>=0 && maps[oldcol][oldrow-1]==state){
+				county++;
+				oldrow--;
+			}
+			oldrow = row;
+			oldcol = col;
+			while((oldrow+1)<=15 && maps[oldcol][oldrow+1]==state){
+				county++;
+				oldrow++;
+			}
+			// 左斜
+			oldrow = row;
+			oldcol = col;
+			while(oldcol-1>=0 && oldrow-1>=0 && maps[oldcol-1][oldrow-1]==state){
+				countxy++;
+				oldcol--;
+				oldrow--;
+			}
+			oldrow = row;
+			oldcol = col;
+			while(oldcol+1<=15 && oldrow+1<=15 && maps[oldcol+1][oldrow+1]==state){
+				countxy++;
+				oldcol++;
+				oldrow++;
+			}
+			// 右斜
+			oldrow = row;
+			oldcol = col;
+			while(oldcol-1>=0 && oldrow+1<=15 && maps[oldcol-1][oldrow+1]==state){
+				countyx++;
+				oldcol--;
+				oldrow++;
+			}
+			oldrow = row;
+			oldcol = col;
+			while(oldcol+1<=15 && oldrow-1>=0 && maps[oldcol+1][oldrow-1]==state){
+				countyx++;
+				oldcol++;
+				oldrow--;
+			}
+			if(countx>=5 || county>=5 || countxy>=5 || countyx>=5){
+				// 棋手胜利，给所有棋盘赋值非零，禁止下棋
+				for(var i=0;i<=15;i++){
+					maps[i] = new Array(16);
+					for(var j=0;j<=15;j++){
+						maps[i][j] = 1;
+					}
+				}
+				ctx.fillStyle = 'rgba(0,0,0,.5)';
+				ctx.fillRect(120,220,400,200);
+				ctx.font = 'bold 60px arial';
+				ctx.fillStyle = 'white';
+				// ctx.fillText('You Win!', 180,300);
+				if(state==1){
+					ctx.fillText('白棋胜!',220,340);
+				}else{
+					ctx.fillText('黑棋胜!',220,340);
+				}
+			}
+			// console.log(col+' '+row+' '+count);
+		}
+	</script>
+</body>
+</html>
